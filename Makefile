@@ -4,8 +4,9 @@ CPPFLAGS=
 
 BINDIR=output
 
-SRC=forza_quattro.c
+SRC=$(wildcard *.c)
 OBJ=$(addprefix $(BINDIR)/, $(SRC:.c=.o))
+DEP=$(OBJ:.o=.d)
 BIN=$(BINDIR)/forza_quattro
 
 all: $(BIN)
@@ -19,7 +20,9 @@ $(BIN): $(OBJ)
 
 $(BINDIR)/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+	$(CC) -c -MMD $(CFLAGS) $(CPPFLAGS) -o $@ $<
 
 clean:
 	rm -rf $(BINDIR)
+
+-include $(DEP)
