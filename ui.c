@@ -8,18 +8,27 @@
 #include <signal.h>
 #include <locale.h>
 
-#define ANSI_CSI "\e["
+#define ANSI_CSI "\033["
 #define ANSI_CURS ANSI_CSI "s"
 #define ANSI_CURL ANSI_CSI "u"
 
 #define SGR_RESET ANSI_CSI "0m"
 #define SGR_RED ANSI_CSI "38;5;9m"
 #define SGR_BLU ANSI_CSI "38;5;12m"
+#define SGR_BLINK ANSI_CSI "5m"
 
 const char *state_visual[CELL_STATE_LENGTH] = {
 	[CELL_EMPTY] = SGR_RESET " " SGR_RESET,
 	[CELL_PLAYER1] = SGR_RED "O" SGR_RESET,
 	[CELL_PLAYER2] = SGR_BLU "O" SGR_RESET,
+};
+
+const char *turn_visual[CELL_STATE_LENGTH] = {
+	[CELL_EMPTY] = SGR_RESET "You shouldn't be seeing this!" SGR_RESET,
+	[CELL_PLAYER1] = SGR_RED "Giocatore 1" SGR_RESET \
+		SGR_BLINK " sta pensando..." SGR_RESET,
+	[CELL_PLAYER2] = SGR_BLU "Giocatore 2" SGR_RESET \
+		SGR_BLINK " sta pensando..." SGR_RESET,
 };
 
 static struct termios initialattr;

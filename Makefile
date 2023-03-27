@@ -1,4 +1,4 @@
-CFLAGS=-std=gnu99 -Wall -Wextra -Os -g3
+CFLAGS=-std=c99 -Wall -Wextra -Wpedantic -Os -g3
 LDFLAGS=
 CPPFLAGS=
 

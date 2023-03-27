@@ -4,6 +4,7 @@
 #include "definitions.h"
 
 extern const char *state_visual[CELL_STATE_LENGTH];
+extern const char *turn_visual[CELL_STATE_LENGTH];
 
 void uiinit(void);
 int uirawtty(void);
