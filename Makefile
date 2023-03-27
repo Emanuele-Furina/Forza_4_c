@@ -5,6 +5,7 @@ CPPFLAGS=
 BINDIR=output
 
 SRC=forza_quattro.c
+OBJ=$(addprefix $(BINDIR)/, $(SRC:.c=.o))
 BIN=$(BINDIR)/forza_quattro
 
 all: $(BIN)
@@ -12,9 +13,13 @@ all: $(BIN)
 run: $(BIN)
 	./$^
 
-$(BIN): $(SRC)
+$(BIN): $(OBJ)
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $<
+	$(CC) $(LDFLAGS) -o $@ $^
+
+$(BINDIR)/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
 
 clean:
 	rm -rf $(BINDIR)
