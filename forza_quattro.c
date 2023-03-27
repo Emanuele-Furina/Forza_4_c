@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "definitions.h"
 #include "ui.h"
@@ -35,6 +36,56 @@ int board_real_drop_column(Board b, int column, int direction) {
 	return rcol - column;
 }
 
+bool won_check(Board b, CellState player) {
+    int count;
+
+    // Check horizontal
+    for (int y = 0; y < BOARD_HEIGHT; y++) {
+        for (int x = 0; x < BOARD_WIDTH - 3; x++) {
+            count = 0;
+            for (int i = 0; i < 4; i++) {
+                if (b[x + i][y] == player) count++;
+            }
+            if (count == 4) return true;
+        }
+    }
+
+    // Check vertical
+    for (int x = 0; x < BOARD_WIDTH; x++) {
+        for (int y = 0; y < BOARD_HEIGHT - 3; y++) {
+            count = 0;
+            for (int i = 0; i < 4; i++) {
+                if (b[x][y + i] == player) count++;
+            }
+            if (count == 4) return true;
+        }
+    }
+
+    // Check diagonal (bottom-left to top-right)
+    for (int x = 0; x < BOARD_WIDTH - 3; x++) {
+        for (int y = 3; y < BOARD_HEIGHT; y++) {
+            count = 0;
+            for (int i = 0; i < 4; i++) {
+                if (b[x + i][y - i] == player) count++;
+            }
+            if (count == 4) return true;
+        }
+    }
+
+    // Check diagonal (top-left to bottom-right)
+    for (int x = 0; x < BOARD_WIDTH - 3; x++) {
+        for (int y = 0; y < BOARD_HEIGHT - 3; y++) {
+            count = 0;
+            for (int i = 0; i < 4; i++) {
+                if (b[x + i][y + i] == player) count++;
+            }
+            if (count == 4) return true;
+        }
+    }
+
+    return false;
+}
+
 // should not move the cursor!
 void board_display(Board b, CellState player) {
 	uiprintf("%ls", USV_DR);
@@ -59,50 +110,65 @@ void board_display(Board b, CellState player) {
 }
 
 int main(void) {
-	Board game = { 0 };
+    Board game = { 0 };
 
-	uiinit();
+    uiinit();
 
-	CellState player = CELL_PLAYER1;
-	int column = 0, watchdog = 0;
-	while (watchdog < (BOARD_WIDTH * BOARD_HEIGHT)) {
-		board_display(game, player);
-		uiright(column + 1);
+    CellState player = CELL_PLAYER1;
+    int column = 0, watchdog = 0;
+    bool game_over = false;
+    while (watchdog < (BOARD_WIDTH * BOARD_HEIGHT) && !game_over) {
+        board_display(game, player);
+        uiright(column + 1);
 
-		char c;
-		int row;
-		while ((c = uigetchar())) {
-			if (c == 'q') exit(0);
+        char c;
+        int row;
+        while ((c = uigetchar())) {
+            if (c == 'q') exit(0);
 
-			if (c == '\r' &&
-			   (row = board_available_in_column(game, column)) >= 0 &&
-			    row < BOARD_HEIGHT
-			) {
-				game[column][row] = player;
-				watchdog++;
-				break;
-			}
-			if (c != '\033') continue;
+            if (c == '\r' &&
+               (row = board_available_in_column(game, column)) >= 0 &&
+                row < BOARD_HEIGHT
+            ) {
+                game[column][row] = player;
+                watchdog++;
+                break;
+            }
+            if (c != '\033') continue;
 
-			if (uigetchar() != '[') continue;
+            if (uigetchar() != '[') continue;
 
-			int direction = 0;
-			switch (uigetchar()) {
-			case 'C': direction = +1; break;
-			case 'D': direction = -1; break;
-			default: break;
-			} if (direction == 0) continue;
-			int delta = board_real_drop_column(game, column, direction);
-			if (delta > 0)
-				uiright(delta);
-			else if (delta < 0)
-				uileft(-delta);
-			column += delta;
-		}
+            int direction = 0;
+            switch (uigetchar()) {
+            case 'C': direction = +1; break;
+            case 'D': direction = -1; break;
+            default: break;
+            } if (direction == 0) continue;
+            int delta = board_real_drop_column(game, column, direction);
+            if (delta > 0)
+                uiright(delta);
+            else if (delta < 0)
+                uileft(-delta);
+            column += delta;
+        }
 
-		uileft(column + 1);
-		player = player == CELL_PLAYER1 ? CELL_PLAYER2 : CELL_PLAYER1;
-	}
+        uileft(column + 1);
 
-	exit(0);
+        // Check if the current player has won
+        if (won_check(game, player)) {
+            game_over = true;
+            board_display(game, player);
+            uiprintf("\nPlayer %d won!\n", player == CELL_PLAYER1 ? 1 : 2);
+            break;
+        }
+
+        player = player == CELL_PLAYER1 ? CELL_PLAYER2 : CELL_PLAYER1;
+    }
+
+    if (!game_over) {
+        board_display(game, player);
+        uiprintf("\nIt's a draw!\n");
+    }
+
+    exit(0);
 }
