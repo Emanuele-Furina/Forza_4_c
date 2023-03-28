@@ -11,11 +11,15 @@
 #define ANSI_CSI "\033["
 #define ANSI_CURS ANSI_CSI "s"
 #define ANSI_CURL ANSI_CSI "u"
+#define ANSI_CLR ANSI_CSI "K"
 
 #define SGR_RESET ANSI_CSI "0m"
 #define SGR_RED ANSI_CSI "38;5;9m"
 #define SGR_BLU ANSI_CSI "38;5;12m"
+#define SGR_YEL ANSI_CSI "38;5;11m"
+#define SGR_BLK ANSI_CSI "38;5;0m"
 #define SGR_BLINK ANSI_CSI "5m"
+#define SGR_INVERT ANSI_CSI "7m"
 
 const char *state_visual[CELL_STATE_LENGTH] = {
 	[CELL_EMPTY] = SGR_RESET " " SGR_RESET,
@@ -26,9 +30,21 @@ const char *state_visual[CELL_STATE_LENGTH] = {
 const char *turn_visual[CELL_STATE_LENGTH] = {
 	[CELL_EMPTY] = SGR_RESET "You shouldn't be seeing this!" SGR_RESET,
 	[CELL_PLAYER1] = SGR_RED "Giocatore 1" SGR_RESET \
-		SGR_BLINK " sta pensando..." SGR_RESET,
+		SGR_BLINK " sta pensando..." SGR_RESET ANSI_CLR,
 	[CELL_PLAYER2] = SGR_BLU "Giocatore 2" SGR_RESET \
-		SGR_BLINK " sta pensando..." SGR_RESET,
+		SGR_BLINK " sta pensando..." SGR_RESET ANSI_CLR,
+};
+
+const char *won_visual[CELL_STATE_LENGTH] = {
+	[CELL_EMPTY] = SGR_YEL "Pareggio!" SGR_RESET ANSI_CLR,
+	[CELL_PLAYER1] = SGR_RED "Giocatore 1" SGR_RESET " ha vinto!" ANSI_CLR,
+	[CELL_PLAYER2] = SGR_BLU "Giocatore 2" SGR_RESET " ha vinto!" ANSI_CLR,
+};
+
+const char *invert_visual[CELL_STATE_LENGTH] = {
+	[CELL_EMPTY] = SGR_INVERT "O" SGR_RESET,
+	[CELL_PLAYER1] = SGR_BLK ANSI_CSI "48;5;9m"  "O" SGR_RESET,
+	[CELL_PLAYER2] = SGR_BLK ANSI_CSI "48;5;12m" "O" SGR_RESET,
 };
 
 static struct termios initialattr;
