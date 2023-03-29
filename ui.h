@@ -1,12 +1,18 @@
 #ifndef F4_UI_H
 #define F4_UI_H
 
-#include "definitions.h"
+#define ANSI_CSI "\033["
+#define ANSI_CURS ANSI_CSI "s"
+#define ANSI_CURL ANSI_CSI "u"
+#define ANSI_CLR ANSI_CSI "K"
 
-extern const char *state_visual[CELL_STATE_LENGTH];
-extern const char *turn_visual[CELL_STATE_LENGTH];
-extern const char *won_visual[CELL_STATE_LENGTH];
-extern const char *invert_visual[CELL_STATE_LENGTH];
+#define SGR_RESET ANSI_CSI "0m"
+#define SGR_INVERT ANSI_CSI "7m"
+#define SGR_BLINK ANSI_CSI "5m"
+
+#define FG_256 ANSI_CSI "38;5;"
+#define BG_256 ANSI_CSI "48;5;"
+#define FG_BLK FG_256  "0m"
 
 void uiinit(void);
 int uirawtty(void);

@@ -14,29 +14,51 @@
 #define USV_UL L"\u256F" // L"\u2518"
 
 #define USV_BK L"\u2585"
+#define USV_PC L"\u25CB"
+#define USV_WC L"\u25C6"
 
-int board_available_in_column(Board b, int column) {
+// indices for 256 colour palette
+static const unsigned char player_colours[MAX_PLAYERS] = {
+	21, 196, 201, 22, 202, 46, 51, 226, 225, 224
+};
+
+static void plr_fg(CellState player, const int *plrs, const int *none) {
+	if (player == 0) {
+		uiprintf(SGR_RESET "%ls", none);
+		return;
+	}
+	uiprintf(FG_256 "%dm", player_colours[player - 1]);
+	if (plrs != NULL) uiprintf("%ls" SGR_RESET, plrs);
+}
+
+static void plr_bg(CellState player, const int *ext) {
+	if (player == 0) uiprintf(SGR_RESET);
+	else uiprintf(FG_BLK BG_256 "%dm", player_colours[player - 1]);
+	if (ext != NULL) uiprintf("%ls" SGR_RESET, ext);
+}
+
+static int board_available_in_column(Board b, int column) {
 	if (column < 0 || column >= BOARD_WIDTH)
 		return -1;
 
 	for (int y = 0; y < BOARD_HEIGHT; y++)
-		if (b[column][y] != CELL_EMPTY) return y - 1;
+		if (b[column][y] != STATE_EMPTY) return y - 1;
 	return BOARD_HEIGHT - 1;
 }
 
-int board_real_drop_column(Board b, int column, int direction) {
+static int board_real_drop_column(Board b, int column, int direction) {
 	int rcol = column;
 
 	do {
 		rcol = rcol + direction;
 		if (rcol < 0) return 0;
 		if (rcol >= BOARD_WIDTH) return 0;
-	} while (b[rcol][0] != CELL_EMPTY);
+	} while (b[rcol][0] != STATE_EMPTY);
 
 	return rcol - column;
 }
 
-bool board_player_has_won(
+static bool board_player_has_won(
 	Board b, CellState player,
 	int positions[COUNT_TARGET * 2]
 ) {
@@ -105,13 +127,13 @@ bool board_player_has_won(
 void board_display(Board b, CellState player) {
 	uiprintf("%ls", USV_DR);
 	for (int x = 0; x < BOARD_WIDTH; x++)
-		uiprintf("%ls", b[x][0] != CELL_EMPTY ? USV_BK : L" ");
+		uiprintf("%ls", b[x][0] != STATE_EMPTY ? USV_BK : L" ");
 	uiprintf("%ls", USV_DL "\n\r");
 
 	for (int y = 0; y < BOARD_HEIGHT; y++) {
 		uiprintf("%ls", USV_LV);
 		for (int x = 0; x < BOARD_WIDTH; x++)
-			uiprintf("%s", state_visual[b[x][y]]);
+			plr_fg(b[x][y], USV_PC, L" ");
 		uiprintf("%ls", USV_LV);
 		uiprintf("\n\r");
 	}
@@ -120,16 +142,20 @@ void board_display(Board b, CellState player) {
 	for (int x = 0; x < BOARD_WIDTH; x++)
 		uiprintf("%ls", USV_LH);
 	uiprintf("%ls", USV_UL "\n\r");
-	uiprintf("%s\r", turn_visual[player]);
+
+	plr_fg(player, NULL, NULL);
+	uiprintf("Giocatore %d" SGR_RESET SGR_BLINK
+	         " sta pensando..." SGR_RESET ANSI_CLR "\r", player);
 	uiup(BOARD_HEIGHT + 2);
 }
 
 int main(void) {
 	Board game = { 0 };
+	int nplayers = DEFAULT_PLAYERS;
 
 	uiinit();
 
-	CellState player = CELL_PLAYER1;
+	CellState player = 1;
 	int column = 0, watchdog = 0;
 	bool game_over = false;
 	while (watchdog < (BOARD_WIDTH * BOARD_HEIGHT) && !game_over) {
@@ -173,26 +199,31 @@ int main(void) {
 		int positions[COUNT_TARGET * 2] = { 0 };
 		if (board_player_has_won(game, player, positions)) {
 			game_over = true;
+
 			board_display(game, player);
 			for (int i = 0; i < COUNT_TARGET; i++) {
 				uidown(positions[(i * 2) + 1] + 1);
 				uiright(positions[(i * 2) + 0] + 1);
-				uiprintf("%s", invert_visual[player]);
+
+				plr_bg(player, USV_WC);
+
 				uiup(positions[(i * 2) + 1] + 1);
 				uileft(positions[(i * 2) + 0] + 2);
 			}
 			uidown(BOARD_HEIGHT + 2);
-			uiprintf("%s\n\r", won_visual[player]);
+			plr_fg(player, NULL, NULL);
+			uiprintf("Giocatore %d" SGR_RESET " ha vinto!"
+			         ANSI_CLR "\r\n", player);
 			break;
 		}
 
-		player = player == CELL_PLAYER1 ? CELL_PLAYER2 : CELL_PLAYER1;
+		player = (player % nplayers) + 1;
 	}
 
 	if (!game_over) {
 		board_display(game, player);
 		uidown(BOARD_HEIGHT + 2);
-		uiprintf("%s\n\r", won_visual[CELL_EMPTY]);
+		uiprintf("%s\r\n", SGR_RESET "Pareggio!" ANSI_CLR);
 	}
 
 	exit(0);
