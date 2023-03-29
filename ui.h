@@ -7,12 +7,9 @@
 #define ANSI_CLR ANSI_CSI "K"
 
 #define SGR_RESET ANSI_CSI "0m"
-#define SGR_INVERT ANSI_CSI "7m"
 #define SGR_BLINK ANSI_CSI "5m"
 
 #define FG_256 ANSI_CSI "38;5;"
-#define BG_256 ANSI_CSI "48;5;"
-#define FG_BLK FG_256  "0m"
 
 void uiinit(void);
 int uirawtty(void);
@@ -25,6 +22,9 @@ void uidown(int n);
 
 void uicurs(void);
 void uicurl(void);
+
+void uihidecur(void);
+void uishowcur(void);
 
 char uigetchar(void);
 

@@ -30,6 +30,7 @@ int uirawtty(void) {
 }
 
 int uirestoretty(void) {
+	uishowcur();
 	return tcsetattr(STDIN_FILENO, TCSADRAIN, &initialattr);
 }
 
@@ -73,6 +74,14 @@ void uicurs(void) {
 
 void uicurl(void) {
 	uiprintf(ANSI_CURL);
+}
+
+void uihidecur(void) {
+	uiprintf(ANSI_CSI "?25l");
+}
+
+void uishowcur(void) {
+	uiprintf(ANSI_CSI "?25h");
 }
 
 char uigetchar(void) {

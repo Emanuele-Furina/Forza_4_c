@@ -13,9 +13,10 @@
 #define USV_UR L"\u2570" // L"\u2514"
 #define USV_UL L"\u256F" // L"\u2518"
 
-#define USV_BK L"\u2585"
-#define USV_PC L"\u25CB"
-#define USV_WC L"\u25C6"
+#define USV_BK L"\u2585" /// blocked column
+#define USV_PC L"\u25CB" /// normal cell
+#define USV_WC L"\u25CF" /// winning cell
+#define USV_CU L"\u21D3" /// cursor indicator
 
 // indices for 256 colour palette
 static const unsigned char player_colours[MAX_PLAYERS] = {
@@ -29,12 +30,6 @@ static void plr_fg(CellState player, const int *plrs, const int *none) {
 	}
 	uiprintf(FG_256 "%dm", player_colours[player - 1]);
 	if (plrs != NULL) uiprintf("%ls" SGR_RESET, plrs);
-}
-
-static void plr_bg(CellState player, const int *ext) {
-	if (player == 0) uiprintf(SGR_RESET);
-	else uiprintf(FG_BLK BG_256 "%dm", player_colours[player - 1]);
-	if (ext != NULL) uiprintf("%ls" SGR_RESET, ext);
 }
 
 static int board_available_in_column(Board b, int column) {
@@ -164,6 +159,7 @@ int main(void) {
 	int nplayers = DEFAULT_PLAYERS;
 
 	uiinit();
+	uihidecur();
 
 	CellState player = 1;
 	int column = 0, watchdog = 0;
@@ -174,7 +170,10 @@ int main(void) {
 
 		char c;
 		int row;
+		if (game[column][0] == STATE_EMPTY)
+			{ uiprintf("%ls", USV_CU); uileft(1); }
 		while ((c = uigetchar())) {
+
 			if (c == 'q') exit(0);
 
 			if (c == '\r' &&
@@ -185,8 +184,8 @@ int main(void) {
 				watchdog++;
 				break;
 			}
-			if (c != '\033') continue;
 
+			if (c != '\033') continue;
 			if (uigetchar() != '[') continue;
 
 			int direction = 0;
@@ -196,11 +195,15 @@ int main(void) {
 			default: break;
 			} if (direction == 0) continue;
 			int delta = board_real_drop_column(game, column, direction);
+			uiprintf("%ls", game[column][0] == STATE_EMPTY ? L" " : USV_BK);
+			uileft(1);
 			if (delta > 0)
 				uiright(delta * (SP_COEFF + 1));
 			else if (delta < 0)
 				uileft(-delta * (SP_COEFF + 1));
 			column += delta;
+			if (game[column][0] == STATE_EMPTY)
+				{ uiprintf("%ls", USV_CU); uileft(1); }
 		}
 
 		uileft(column * (SP_COEFF + 1) + 1);
@@ -216,7 +219,7 @@ int main(void) {
 				int dy = positions[i * 2 + 1] + 1;
 				uidown(dy); uiright(dx);
 
-				plr_bg(player, USV_WC);
+				plr_fg(player, USV_WC, NULL);
 
 				uiup(dy); uileft(dx + 1);
 			}
