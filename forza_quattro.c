@@ -53,39 +53,41 @@ static int board_real_drop_column(Board b, int column, int direction) {
 	return rcol - column;
 }
 
-static bool board_count_in_dir(
+static int board_count_in_dir(
 	Board b, CellState player, int ix, int iy, int dirx, int diry,
-	int positions[COUNT_TARGET][2]
+	int positions[][2], int offset
 ) {
 	int count = 0;
-	int x = ix, y = iy;
+	int x = ix + dirx, y = iy + diry;
 	while (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
 		if (b[x][y] == player) {
+			positions[count + offset][0] = x;
+			positions[count + offset][1] = y;
 			count++;
-			positions[count - 1][0] = x;
-			positions[count - 1][1] = y;
 		} else break;
-		if (count >= COUNT_TARGET) return true;
 		x += dirx; y += diry;
 	}
-
-	return false;
+	return count;
 }
 
-static bool board_player_has_won(
+static int board_player_has_won(
 	Board b, CellState player, int ix, int iy,
-	int positions[COUNT_TARGET][2]
+	int positions[][2]
 ) {
 	for (int ic = 0; ic < 4; ic++) {
 		int dirx = ic < 2 ? -1 : (ic - 2);
 		int diry = ic == 0 ? 0 : -1;
-		if (board_count_in_dir(b, player, ix, iy, dirx, diry, positions))
-			return true;
-		if (board_count_in_dir(b, player, ix, iy, -dirx, -diry, positions))
-			return true;
+		int sum = 1;
+		positions[0][0] = ix;
+		positions[0][1] = iy;
+		sum += board_count_in_dir(b, player,
+		    ix, iy, +dirx, +diry, positions, sum);
+		sum += board_count_in_dir(b, player,
+		    ix, iy, -dirx, -diry, positions, sum);
+		if (sum >= COUNT_TARGET) return sum;
 	}
 
-	return false;
+	return 0;
 }
 
 // should not move the cursor!
@@ -179,12 +181,14 @@ int main(void) {
 		uileft(column * (SP_COEFF + 1) + 1);
 
 		// check if the current player has won
-		int positions[COUNT_TARGET][2] = { 0 };
-		if (board_player_has_won(game, player, column, row, positions)) {
+		int positions[MAX_TARGET][2] = { 0 };
+		int npositions =
+			board_player_has_won(game, player, column, row, positions);
+		if (npositions > 0) {
 			game_over = true;
 
 			board_display(game, player);
-			for (int i = 0; i < COUNT_TARGET; i++) {
+			for (int i = 0; i < npositions; i++) {
 				int dx = positions[i][0] * (SP_COEFF + 1) + 1;
 				int dy = positions[i][1] + 1;
 				uidown(dy); uiright(dx);

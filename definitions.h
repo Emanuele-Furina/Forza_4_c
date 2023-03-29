@@ -23,8 +23,10 @@
 	#error Count target must be greater than 1!
 #endif
 
-#if COUNT_TARGET > BOARD_WIDTH && COUNT_TARGET > BOARD_HEIGHT
-	#error Count target is unreachable!
+#if BOARD_WIDTH > BOARD_HEIGHT
+	#define MAX_TARGET BOARD_WIDTH
+#else
+	#define MAX_TARGET BOARD_HEIGHT
 #endif
 
 typedef char CellState;
