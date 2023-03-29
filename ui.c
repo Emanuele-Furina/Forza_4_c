@@ -52,6 +52,18 @@ void uiinit(void) {
 	signal(SIGTERM, uisighandler);
 }
 
+/// trashes SGR state
+void uistatusd(int line, const char *fmt, ...) {
+	va_list ap;
+
+	fprintf(stderr, "\033[s\033[0m\033[%d;1H\033[K", line);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fprintf(stderr, "\033[u");
+}
+
+
 void uileft(int n) {
 	uiprintf(ANSI_CSI "%d" "D", n);
 }

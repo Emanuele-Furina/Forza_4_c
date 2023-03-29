@@ -30,4 +30,6 @@ char uigetchar(void);
 
 void uiprintf(const char *fmt, ...);
 
+void uistatusd(int line, const char *fmt, ...);
+
 #endif /* F4_UI_H */
