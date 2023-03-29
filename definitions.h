@@ -9,6 +9,8 @@
 
 #define MAX_PLAYERS 10
 
+#define SP_COEFF 2
+
 #if DEFAULT_PLAYERS > MAX_PLAYERS
 	#error DEFAULT_PLAYERS cannot be greater than MAX_PLAYERS
 #endif

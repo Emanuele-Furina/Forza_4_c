@@ -126,21 +126,30 @@ static bool board_player_has_won(
 // should not move the cursor!
 void board_display(Board b, CellState player) {
 	uiprintf("%ls", USV_DR);
-	for (int x = 0; x < BOARD_WIDTH; x++)
+	for (int x = 0; x < BOARD_WIDTH; x++) {
 		uiprintf("%ls", b[x][0] != STATE_EMPTY ? USV_BK : L" ");
+		if (x < BOARD_WIDTH - 1)
+			for (int i = 0; i < SP_COEFF; i++) uiprintf("%ls", L" ");
+	}
 	uiprintf("%ls", USV_DL "\n\r");
 
 	for (int y = 0; y < BOARD_HEIGHT; y++) {
 		uiprintf("%ls", USV_LV);
-		for (int x = 0; x < BOARD_WIDTH; x++)
+		for (int x = 0; x < BOARD_WIDTH; x++) {
 			plr_fg(b[x][y], USV_PC, L" ");
+			if (x < BOARD_WIDTH - 1)
+				for (int i = 0; i < SP_COEFF; i++) uiprintf("%ls", L" ");
+		}
 		uiprintf("%ls", USV_LV);
 		uiprintf("\n\r");
 	}
 
 	uiprintf("%ls", USV_UR);
-	for (int x = 0; x < BOARD_WIDTH; x++)
+	for (int x = 0; x < BOARD_WIDTH; x++) {
 		uiprintf("%ls", USV_LH);
+		if (x < BOARD_WIDTH - 1)
+			for (int i = 0; i < SP_COEFF; i++) uiprintf("%ls", USV_LH);
+	}
 	uiprintf("%ls", USV_UL "\n\r");
 
 	plr_fg(player, NULL, NULL);
@@ -160,7 +169,7 @@ int main(void) {
 	bool game_over = false;
 	while (watchdog < (BOARD_WIDTH * BOARD_HEIGHT) && !game_over) {
 		board_display(game, player);
-		uiright(column + 1);
+		uiright(column * (SP_COEFF + 1) + 1);
 
 		char c;
 		int row;
@@ -187,13 +196,13 @@ int main(void) {
 			} if (direction == 0) continue;
 			int delta = board_real_drop_column(game, column, direction);
 			if (delta > 0)
-				uiright(delta);
+				uiright(delta * (SP_COEFF + 1));
 			else if (delta < 0)
-				uileft(-delta);
+				uileft(-delta * (SP_COEFF + 1));
 			column += delta;
 		}
 
-		uileft(column + 1);
+		uileft(column * (SP_COEFF + 1) + 1);
 
 		// check if the current player has won
 		int positions[COUNT_TARGET * 2] = { 0 };
@@ -202,13 +211,13 @@ int main(void) {
 
 			board_display(game, player);
 			for (int i = 0; i < COUNT_TARGET; i++) {
-				uidown(positions[(i * 2) + 1] + 1);
-				uiright(positions[(i * 2) + 0] + 1);
+				int dx = (positions[i * 2 + 0]) * (SP_COEFF + 1) + 1;
+				int dy = positions[i * 2 + 1] + 1;
+				uidown(dy); uiright(dx);
 
 				plr_bg(player, USV_WC);
 
-				uiup(positions[(i * 2) + 1] + 1);
-				uileft(positions[(i * 2) + 0] + 2);
+				uiup(dy); uileft(dx + 1);
 			}
 			uidown(BOARD_HEIGHT + 2);
 			plr_fg(player, NULL, NULL);
