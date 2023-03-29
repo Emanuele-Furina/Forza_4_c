@@ -128,8 +128,9 @@ void board_display(Board b, CellState player) {
 	uiprintf("%ls", USV_DR);
 	for (int x = 0; x < BOARD_WIDTH; x++) {
 		uiprintf("%ls", b[x][0] != STATE_EMPTY ? USV_BK : L" ");
-		if (x < BOARD_WIDTH - 1)
-			for (int i = 0; i < SP_COEFF; i++) uiprintf("%ls", L" ");
+		if (x < BOARD_WIDTH - 1) for (int i = 0; i < SP_COEFF; i++)
+			uiprintf("%ls", (b[x + 0][0] != STATE_EMPTY &&
+			                 b[x + 1][0] != STATE_EMPTY) ? USV_BK : L" ");
 	}
 	uiprintf("%ls", USV_DL "\n\r");
 
