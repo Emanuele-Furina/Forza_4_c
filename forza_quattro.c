@@ -73,9 +73,9 @@ static int board_real_drop_column(BOARD(b), int column, int direction) {
 	do {
 		rcol = rcol + direction;
 		if (rcol < 0)
-			return abs(direction) == 1 ? BOARD_WIDTH - column - 1 : 0 - column;
+			rcol = BOARD_WIDTH - 1;
 		if (rcol >= BOARD_WIDTH)
-			return abs(direction == 1) ? -column : BOARD_WIDTH - column - 1;
+			rcol = 0;
 	} while (b[rcol][0] != STATE_EMPTY);
 
 	return rcol - column;
@@ -218,15 +218,14 @@ int main(int argc, char *argv[]) {
 
 	CellState player = 1;
 	int column = 0, watchdog = 0;
-	bool game_over = false;
-	while (watchdog < (BOARD_WIDTH * BOARD_HEIGHT) && !game_over) {
+	while (watchdog < (BOARD_WIDTH * BOARD_HEIGHT)) {
 		board_display(game, player);
 		uiright(column * (SP_COEFF + 1) + 1);
 
 		char c;
 		int row = 0;
 		if (game[column][0] == STATE_EMPTY)
-			{ plr_fg(player, USV_CU, NULL); uileft(1); }
+			plr_fg(player, USV_CU "\033[D", NULL);
 		while ((c = uigetchar())) {
 			if (c == 'q') exit(0);
 
@@ -244,8 +243,6 @@ int main(int argc, char *argv[]) {
 
 			int direction = 0;
 			switch (uigetchar()) {
-			case '5': if (uigetchar() == '~') direction = -BOARD_WIDTH; break;
-			case '6': if (uigetchar() == '~') direction = +BOARD_WIDTH; break;
 			case 'C': direction = +1; break;
 			case 'D': direction = -1; break;
 			default: break;
@@ -253,13 +250,11 @@ int main(int argc, char *argv[]) {
 			int delta = board_real_drop_column(game, column, direction);
 			uiprintf("%ls", game[column][0] == STATE_EMPTY ? L" " : USV_BK);
 			uileft(1);
-			if (delta > 0)
-				uiright(delta * (SP_COEFF + 1));
-			else if (delta < 0)
-				uileft(-delta * (SP_COEFF + 1));
+
+			uimovh(delta * (SP_COEFF + 1));
 			column += delta;
 			if (game[column][0] == STATE_EMPTY)
-				{ plr_fg(player, USV_CU, NULL); uileft(1); }
+				plr_fg(player, USV_CU "\033[D", NULL);
 		}
 
 		uileft(column * (SP_COEFF + 1) + 1);
@@ -269,30 +264,25 @@ int main(int argc, char *argv[]) {
 		int npositions =
 			board_player_has_won(game, player, column, row, positions);
 		if (npositions > 0) {
-			game_over = true;
-
 			board_display(game, player);
 			for (int i = 0; i < npositions; i++) {
 				int dx = positions[i][0] * (SP_COEFF + 1) + 1;
 				int dy = positions[i][1] + 1;
-				uidown(dy); uiright(dx);
+				uimovrel(dx, dy);
 
 				plr_fg(player, USV_WC, NULL);
 
-				uiup(dy); uileft(dx + 1);
+				uimovrel(-dx - 1, -dy);
 			}
-			uidown(BOARD_HEIGHT + 2);
-			plr_fg(player, NULL, NULL);
-			uiprintf("Giocatore %d" SGR_RESET " ha vinto!"
-			         ANSI_CLR "\r\n", player);
+			uidown(BOARD_HEIGHT + 2); plr_fg(player, NULL, NULL);
+			uiprintf("Giocatore %d" SGR_RESET
+			         " ha vinto!" ANSI_CLR "\r\n", player);
 			break;
-		}
-
-		player = (player % nplayers) + 1;
+		} else player = (player % nplayers) + 1;
 	}
 	normal_exit = true;
 
-	if (!game_over) {
+	if (watchdog == (BOARD_WIDTH * BOARD_HEIGHT)) {
 		board_display(game, player);
 		uidown(BOARD_HEIGHT + 2);
 		uiprintf("%s\r\n", SGR_RESET "Pareggio!" ANSI_CLR);

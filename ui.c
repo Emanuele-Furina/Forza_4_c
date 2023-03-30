@@ -64,20 +64,38 @@ void uistatusd(int line, const char *fmt, ...) {
 }
 
 
-void uileft(int n) {
-	uiprintf(ANSI_CSI "%d" "D", n);
+void uileft(unsigned int n) {
+	uiprintf(ANSI_CSI "%u" "D", n);
 }
 
-void uiright(int n) {
-	uiprintf(ANSI_CSI "%d" "C", n);
+void uiright(unsigned int n) {
+	uiprintf(ANSI_CSI "%u" "C", n);
 }
 
-void uiup(int n) {
-	uiprintf(ANSI_CSI "%d" "A", n);
+void uiup(unsigned int n) {
+	uiprintf(ANSI_CSI "%u" "A", n);
 }
 
-void uidown(int n) {
-	uiprintf(ANSI_CSI "%d" "B", n);
+void uidown(unsigned int n) {
+	uiprintf(ANSI_CSI "%u" "B", n);
+}
+
+void uimovh(int n) {
+	if (n > 0)
+		uiright(n);
+	else if (n < 0)
+		uileft(-n);
+}
+
+void uimovv(int n) {
+	if (n > 0)
+		uidown(n);
+	else if (n < 0)
+		uiup(-n);
+}
+
+void uimovrel(int x, int y) {
+	uimovh(x); uimovv(y);
 }
 
 void uicurs(void) {

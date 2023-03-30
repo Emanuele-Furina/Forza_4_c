@@ -15,10 +15,14 @@ void uiinit(void);
 int uirawtty(void);
 int uirestoretty(void);
 
-void uileft(int n);
-void uiright(int n);
-void uiup(int n);
-void uidown(int n);
+void uileft(unsigned int n);
+void uiright(unsigned int n);
+void uiup(unsigned int n);
+void uidown(unsigned int n);
+
+void uimovh(int n);
+void uimovv(int n);
+void uimovrel(int x, int y);
 
 void uicurs(void);
 void uicurl(void);
