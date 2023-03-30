@@ -72,8 +72,10 @@ static int board_real_drop_column(BOARD(b), int column, int direction) {
 
 	do {
 		rcol = rcol + direction;
-		if (rcol < 0) return 0 - column;
-		if (rcol >= BOARD_WIDTH) return BOARD_WIDTH - column - 1;
+		if (rcol < 0)
+			return abs(direction) == 1 ? BOARD_WIDTH - column - 1 : 0 - column;
+		if (rcol >= BOARD_WIDTH)
+			return abs(direction == 1) ? -column : BOARD_WIDTH - column - 1;
 	} while (b[rcol][0] != STATE_EMPTY);
 
 	return rcol - column;
