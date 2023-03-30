@@ -7,11 +7,6 @@
 #define DEFAULT_COUNT_TARGET 4
 #define DEFAULT_PLAYERS 2
 #define DEFAULT_SP_COEFF 1
-#define MAX_PLAYERS 10
-
-#if DEFAULT_PLAYERS > MAX_PLAYERS
-	#error DEFAULT_PLAYERS cannot be greater than MAX_PLAYERS
-#endif
 
 #if DEFAULT_BOARD_WIDTH < 1 || DEFAULT_BOARD_HEIGHT < 1
 	#error Board dimensions must be sensical!

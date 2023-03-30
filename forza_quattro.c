@@ -28,9 +28,10 @@ int s_sp_coeff = DEFAULT_SP_COEFF;
 bool normal_exit = false;
 
 // indices for 256 colour palette
-static const unsigned char player_colours[MAX_PLAYERS] = {
+static const unsigned char player_colours[] = {
 	21, 196, 201, 22, 202, 46, 51, 226, 225, 224
 };
+#define MAX_PLAYERS (sizeof(player_colours) / sizeof(player_colours[0]))
 
 void die(const char *fmt, ...) {
 	va_list ap;
@@ -146,8 +147,8 @@ void board_display(BOARD(b), CellState player) {
 	uiup(BOARD_HEIGHT + 2);
 }
 
-int decode_opts(int argc, char *argv[]) {
-	int nplayers = DEFAULT_PLAYERS;
+unsigned long decode_opts(int argc, char *argv[]) {
+	unsigned long nplayers = DEFAULT_PLAYERS;
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-p")) {
 			if (++i >= argc) die("Expected argument after -p!");
@@ -187,13 +188,15 @@ void atexit_cursor_cleanup(void) {
 
 int main(int argc, char *argv[]) {
 #ifdef F_NO_OPTS
-	int nplayers = DEFAULT_PLAYERS;
+	unsigned long nplayers = DEFAULT_PLAYERS;
 	// muh VLAs
 	#define maxdim (BOARD_WIDTH > BOARD_HEIGHT ? BOARD_WIDTH : BOARD_HEIGHT)
 #else
-	int nplayers = decode_opts(argc, argv);
+	unsigned long nplayers = decode_opts(argc, argv);
 	int maxdim = BOARD_WIDTH > BOARD_HEIGHT ? BOARD_WIDTH : BOARD_HEIGHT;
 #endif
+	if (nplayers > MAX_PLAYERS)
+		die("Invalid number of players!");
 	if (COUNT_TARGET > maxdim)
 		die("Counter target is unobtainable with this board size!");
 
