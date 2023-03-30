@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) {
 		char c;
 		int row = 0;
 		if (game[column][0] == STATE_EMPTY)
-			{ uiprintf("%ls", USV_CU); uileft(1); }
+			{ plr_fg(player, USV_CU, NULL); uileft(1); }
 		while ((c = uigetchar())) {
 
 			if (c == 'q') exit(0);
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
 				uileft(-delta * (SP_COEFF + 1));
 			column += delta;
 			if (game[column][0] == STATE_EMPTY)
-				{ uiprintf("%ls", USV_CU); uileft(1); }
+				{ plr_fg(player, USV_CU, NULL); uileft(1); }
 		}
 
 		uileft(column * (SP_COEFF + 1) + 1);
