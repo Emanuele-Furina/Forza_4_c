@@ -33,7 +33,7 @@ static const unsigned char player_colours[] = {
 };
 #define MAX_PLAYERS (sizeof(player_colours) / sizeof(player_colours[0]))
 
-void die(const char *fmt, ...) {
+static void die(const char *fmt, ...) {
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -42,6 +42,11 @@ void die(const char *fmt, ...) {
 	fputc('\n', stderr);
 
 	exit(1);
+}
+
+static void usage(const char *name) {
+	die("usage: %s [-p players] "
+	              "[-w width] [-h height] [-t target] [-s spacing]", name);
 }
 
 static void plr_fg(CellState player, const int *plrs, const int *none) {
@@ -175,6 +180,8 @@ unsigned long decode_opts(int argc, char *argv[]) {
 			s_sp_coeff = atoi(argv[i]);
 			if (s_sp_coeff < 0)
 				die("Invalid spacing coefficient!");
+		} else {
+			usage(argv[0]);
 		}
 	}
 	return nplayers;
