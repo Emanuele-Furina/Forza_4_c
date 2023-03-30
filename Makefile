@@ -1,6 +1,7 @@
 CFLAGS=-std=c99 -Wall -Wextra -Wpedantic -Os -g3
 LDFLAGS=
 CPPFLAGS=
+RUNFLAGS=
 
 BINDIR=output
 
@@ -12,7 +13,7 @@ BIN=$(BINDIR)/forza_quattro
 all: $(BIN)
 
 run: $(BIN)
-	./$^
+	./$^ $(RUNFLAGS)
 
 $(BIN): $(OBJ)
 	@mkdir -p $(@D)

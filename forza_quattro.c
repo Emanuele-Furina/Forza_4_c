@@ -50,7 +50,7 @@ static void plr_fg(CellState player, const int *plrs, const int *none) {
 	if (plrs != NULL) uiprintf("%ls" SGR_RESET, plrs);
 }
 
-static int board_available_in_column(CellState b[BOARD_WIDTH][BOARD_HEIGHT], int column) {
+static int board_available_in_column(BOARD(b), int column) {
 	if (column < 0 || column >= BOARD_WIDTH)
 		return -1;
 
@@ -148,28 +148,28 @@ int decode_opts(int argc, char *argv[]) {
 	int nplayers = DEFAULT_PLAYERS;
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-p")) {
-			if (i >= argc) die("Expected argument after -p!");
-			nplayers = atoi(argv[++i]);
+			if (++i >= argc) die("Expected argument after -p!");
+			nplayers = atoi(argv[i]);
 			if (nplayers < 2 || nplayers > MAX_PLAYERS)
 				die("Invalid number of players!");
 		} else if (!strcmp(argv[i], "-w")) {
-			if (i >= argc) die("Expected argument after -w!");
-			s_board_width = atoi(argv[++i]);
+			if (++i >= argc) die("Expected argument after -w!");
+			s_board_width = atoi(argv[i]);
 			if (s_board_width < 1)
 				die("Invalid board width!");
 		} else if (!strcmp(argv[i], "-h")) {
-			if (i >= argc) die("Expected argument after -h!");
-			s_board_height = atoi(argv[++i]);
+			if (++i >= argc) die("Expected argument after -h!");
+			s_board_height = atoi(argv[i]);
 			if (s_board_height < 1)
 				die("Invalid board height!");
 		} else if (!strcmp(argv[i], "-t")) {
-			if (i >= argc) die("Expected argument after -t!");
-			s_count_target = atoi(argv[++i]);
+			if (++i >= argc) die("Expected argument after -t!");
+			s_count_target = atoi(argv[i]);
 			if (s_count_target <= 1)
 				die("Invalid counter target!");
 		} else if (!strcmp(argv[i], "-s")) {
-			if (i >= argc) die("Expected argument after -s!");
-			s_sp_coeff = atoi(argv[++i]);
+			if (++i >= argc) die("Expected argument after -s!");
+			s_sp_coeff = atoi(argv[i]);
 			if (s_sp_coeff < 0)
 				die("Invalid spacing coefficient!");
 		}
