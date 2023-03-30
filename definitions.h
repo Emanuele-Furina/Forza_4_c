@@ -36,6 +36,8 @@ extern int s_sp_coeff;
 #define SP_COEFF (s_sp_coeff)
 #endif
 
+#define MAX_TARGET (BOARD_WIDTH > BOARD_HEIGHT ? BOARD_WIDTH : BOARD_HEIGHT)
+
 typedef char CellState;
 #define STATE_EMPTY ((CellState) 0)
 

@@ -195,45 +195,25 @@ void atexit_cursor_cleanup(void) {
 	uiprintf("\r\033[K");
 }
 
-int main(int argc, char *argv[]) {
-#ifdef F_NO_OPTS
-	unsigned long nplayers = DEFAULT_PLAYERS;
-	// muh VLAs
-	#define maxdim (BOARD_WIDTH > BOARD_HEIGHT ? BOARD_WIDTH : BOARD_HEIGHT)
-#else
-	unsigned long nplayers = decode_opts(argc, argv);
-	int maxdim = BOARD_WIDTH > BOARD_HEIGHT ? BOARD_WIDTH : BOARD_HEIGHT;
-#endif
-	if (nplayers > MAX_PLAYERS)
-		die("Invalid number of players!");
-	if (COUNT_TARGET > maxdim)
-		die("Counter target is unobtainable with this board size!");
-
-	BOARD(game);
-	memset(game, 0, sizeof(CellState) * BOARD_WIDTH * BOARD_HEIGHT);
-
-	uiinit();
-	uihidecur();
-	atexit(atexit_cursor_cleanup);
-
+CellState do_round(BOARD(b), int nplayers) {
 	CellState player = 1;
 	int column = 0, watchdog = 0;
 	while (watchdog < (BOARD_WIDTH * BOARD_HEIGHT)) {
-		board_display(game, player);
+		board_display(b, player);
 		uiright(column * (SP_COEFF + 1) + 1);
 
 		char c;
 		int row = 0;
-		if (game[column][0] == STATE_EMPTY)
+		if (b[column][0] == STATE_EMPTY)
 			plr_fg(player, USV_CU "\033[D", NULL);
 		while ((c = uigetchar())) {
 			if (c == 'q') exit(0);
 
 			if (c == '\r' &&
-			   (row = board_available_in_column(game, column)) >= 0 &&
+			   (row = board_available_in_column(b, column)) >= 0 &&
 			    row < BOARD_HEIGHT
 			) {
-				game[column][row] = player;
+				b[column][row] = player;
 				watchdog++;
 				break;
 			}
@@ -243,28 +223,29 @@ int main(int argc, char *argv[]) {
 
 			int direction = 0;
 			switch (uigetchar()) {
+			case 'A': s_sp_coeff += 1; break;
 			case 'C': direction = +1; break;
 			case 'D': direction = -1; break;
 			default: break;
 			} if (direction == 0) continue;
-			int delta = board_real_drop_column(game, column, direction);
-			uiprintf("%ls", game[column][0] == STATE_EMPTY ? L" " : USV_BK);
+			int delta = board_real_drop_column(b, column, direction);
+			uiprintf("%ls", b[column][0] == STATE_EMPTY ? L" " : USV_BK);
 			uileft(1);
 
 			uimovh(delta * (SP_COEFF + 1));
 			column += delta;
-			if (game[column][0] == STATE_EMPTY)
+			if (b[column][0] == STATE_EMPTY)
 				plr_fg(player, USV_CU "\033[D", NULL);
 		}
 
 		uileft(column * (SP_COEFF + 1) + 1);
 
 		// check if the current player has won
-		int positions[maxdim][2];
+		int positions[MAX_TARGET][2];
 		int npositions =
-			board_player_has_won(game, player, column, row, positions);
+			board_player_has_won(b, player, column, row, positions);
 		if (npositions > 0) {
-			board_display(game, player);
+			board_display(b, player);
 			for (int i = 0; i < npositions; i++) {
 				int dx = positions[i][0] * (SP_COEFF + 1) + 1;
 				int dy = positions[i][1] + 1;
@@ -277,16 +258,34 @@ int main(int argc, char *argv[]) {
 			uidown(BOARD_HEIGHT + 2); plr_fg(player, NULL, NULL);
 			uiprintf("Giocatore %d" SGR_RESET
 			         " ha vinto!" ANSI_CLR "\r\n", player);
-			break;
+			return player;
 		} else player = (player % nplayers) + 1;
 	}
+
+	board_display(b, player);
+	uidown(BOARD_HEIGHT + 2);
+	uiprintf("%s\r\n", SGR_RESET "Pareggio!" ANSI_CLR);
+	return STATE_EMPTY;
+}
+
+int main(int argc, char *argv[]) {
+#ifdef F_NO_OPTS
+	unsigned long nplayers = DEFAULT_PLAYERS;
+#else
+	unsigned long nplayers = decode_opts(argc, argv);
+#endif
+	if (nplayers > MAX_PLAYERS)
+		die("Invalid number of players!");
+	if (COUNT_TARGET > MAX_TARGET)
+		die("Counter target is unobtainable with this board size!");
+
+	CellState game[BOARD_WIDTH][BOARD_HEIGHT];
+	memset(game, 0, sizeof(CellState) * BOARD_WIDTH * BOARD_HEIGHT);
+
+	uiinit();
+	uihidecur();
+	atexit(atexit_cursor_cleanup);
+
+	do_round(game, nplayers);
 	normal_exit = true;
-
-	if (watchdog == (BOARD_WIDTH * BOARD_HEIGHT)) {
-		board_display(game, player);
-		uidown(BOARD_HEIGHT + 2);
-		uiprintf("%s\r\n", SGR_RESET "Pareggio!" ANSI_CLR);
-	}
-
-	exit(0);
 }
