@@ -223,7 +223,6 @@ CellState do_round(BOARD(b), int nplayers) {
 
 			int direction = 0;
 			switch (uigetchar()) {
-			case 'A': s_sp_coeff += 1; break;
 			case 'C': direction = +1; break;
 			case 'D': direction = -1; break;
 			default: break;
