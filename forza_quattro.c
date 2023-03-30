@@ -25,6 +25,8 @@ int s_board_height = DEFAULT_BOARD_HEIGHT;
 int s_count_target = DEFAULT_COUNT_TARGET;
 int s_sp_coeff = DEFAULT_SP_COEFF;
 
+bool normal_exit = false;
+
 // indices for 256 colour palette
 static const unsigned char player_colours[MAX_PLAYERS] = {
 	21, 196, 201, 22, 202, 46, 51, 226, 225, 224
@@ -177,6 +179,12 @@ int decode_opts(int argc, char *argv[]) {
 	return nplayers;
 }
 
+void atexit_cursor_cleanup(void) {
+	if (normal_exit) return;
+	uidown(BOARD_HEIGHT + 2);
+	uiprintf("\r\033[K");
+}
+
 int main(int argc, char *argv[]) {
 #ifdef F_NO_OPTS
 	int nplayers = DEFAULT_PLAYERS;
@@ -194,6 +202,7 @@ int main(int argc, char *argv[]) {
 
 	uiinit();
 	uihidecur();
+	atexit(atexit_cursor_cleanup);
 
 	CellState player = 1;
 	int column = 0, watchdog = 0;
@@ -268,6 +277,7 @@ int main(int argc, char *argv[]) {
 
 		player = (player % nplayers) + 1;
 	}
+	normal_exit = true;
 
 	if (!game_over) {
 		board_display(game, player);
