@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 #include <stdbool.h>
 
 #include "definitions.h"
@@ -18,10 +20,26 @@
 #define USV_WC L"\u25CF" /// winning cell
 #define USV_CU L"\u21D3" /// cursor indicator
 
+int s_board_width = DEFAULT_BOARD_WIDTH;
+int s_board_height = DEFAULT_BOARD_HEIGHT;
+int s_count_target = DEFAULT_COUNT_TARGET;
+int s_sp_coeff = DEFAULT_SP_COEFF;
+
 // indices for 256 colour palette
 static const unsigned char player_colours[MAX_PLAYERS] = {
 	21, 196, 201, 22, 202, 46, 51, 226, 225, 224
 };
+
+void die(const char *fmt, ...) {
+	va_list ap;
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fputc('\n', stderr);
+
+	exit(1);
+}
 
 static void plr_fg(CellState player, const int *plrs, const int *none) {
 	if (player == 0) {
@@ -32,7 +50,7 @@ static void plr_fg(CellState player, const int *plrs, const int *none) {
 	if (plrs != NULL) uiprintf("%ls" SGR_RESET, plrs);
 }
 
-static int board_available_in_column(Board b, int column) {
+static int board_available_in_column(CellState b[BOARD_WIDTH][BOARD_HEIGHT], int column) {
 	if (column < 0 || column >= BOARD_WIDTH)
 		return -1;
 
@@ -41,7 +59,7 @@ static int board_available_in_column(Board b, int column) {
 	return BOARD_HEIGHT - 1;
 }
 
-static int board_real_drop_column(Board b, int column, int direction) {
+static int board_real_drop_column(BOARD(b), int column, int direction) {
 	int rcol = column;
 
 	do {
@@ -54,7 +72,7 @@ static int board_real_drop_column(Board b, int column, int direction) {
 }
 
 static int board_count_in_dir(
-	Board b, CellState player, int ix, int iy, int dirx, int diry,
+	BOARD(b), CellState player, int ix, int iy, int dirx, int diry,
 	int positions[][2], int offset
 ) {
 	int count = 0;
@@ -71,7 +89,7 @@ static int board_count_in_dir(
 }
 
 static int board_player_has_won(
-	Board b, CellState player, int ix, int iy,
+	BOARD(b), CellState player, int ix, int iy,
 	int positions[][2]
 ) {
 	for (int ic = 0; ic < 4; ic++) {
@@ -91,7 +109,7 @@ static int board_player_has_won(
 }
 
 // should not move the cursor!
-void board_display(Board b, CellState player) {
+void board_display(BOARD(b), CellState player) {
 	uiprintf("%ls", USV_DR);
 	for (int x = 0; x < BOARD_WIDTH; x++) {
 		uiprintf("%ls", b[x][0] != STATE_EMPTY ? USV_BK : L" ");
@@ -126,9 +144,53 @@ void board_display(Board b, CellState player) {
 	uiup(BOARD_HEIGHT + 2);
 }
 
-int main(void) {
-	Board game = { 0 };
+int decode_opts(int argc, char *argv[]) {
 	int nplayers = DEFAULT_PLAYERS;
+	for (int i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-p")) {
+			if (i >= argc) die("Expected argument after -p!");
+			nplayers = atoi(argv[++i]);
+			if (nplayers < 2 || nplayers > MAX_PLAYERS)
+				die("Invalid number of players!");
+		} else if (!strcmp(argv[i], "-w")) {
+			if (i >= argc) die("Expected argument after -w!");
+			s_board_width = atoi(argv[++i]);
+			if (s_board_width < 1)
+				die("Invalid board width!");
+		} else if (!strcmp(argv[i], "-h")) {
+			if (i >= argc) die("Expected argument after -h!");
+			s_board_height = atoi(argv[++i]);
+			if (s_board_height < 1)
+				die("Invalid board height!");
+		} else if (!strcmp(argv[i], "-t")) {
+			if (i >= argc) die("Expected argument after -t!");
+			s_count_target = atoi(argv[++i]);
+			if (s_count_target <= 1)
+				die("Invalid counter target!");
+		} else if (!strcmp(argv[i], "-s")) {
+			if (i >= argc) die("Expected argument after -s!");
+			s_sp_coeff = atoi(argv[++i]);
+			if (s_sp_coeff < 0)
+				die("Invalid spacing coefficient!");
+		}
+	}
+	return nplayers;
+}
+
+int main(int argc, char *argv[]) {
+#ifdef F_NO_OPTS
+	int nplayers = DEFAULT_PLAYERS;
+	// muh VLAs
+	#define maxdim (BOARD_WIDTH > BOARD_HEIGHT ? BOARD_WIDTH : BOARD_HEIGHT)
+#else
+	int nplayers = decode_opts(argc, argv);
+	int maxdim = BOARD_WIDTH > BOARD_HEIGHT ? BOARD_WIDTH : BOARD_HEIGHT;
+#endif
+	if (COUNT_TARGET > maxdim)
+		die("Counter target is unobtainable with this board size!");
+
+	BOARD(game);
+	memset(game, 0, sizeof(CellState) * BOARD_WIDTH * BOARD_HEIGHT);
 
 	uiinit();
 	uihidecur();
@@ -181,7 +243,7 @@ int main(void) {
 		uileft(column * (SP_COEFF + 1) + 1);
 
 		// check if the current player has won
-		int positions[MAX_TARGET][2] = { 0 };
+		int positions[maxdim][2];
 		int npositions =
 			board_player_has_won(game, player, column, row, positions);
 		if (npositions > 0) {
