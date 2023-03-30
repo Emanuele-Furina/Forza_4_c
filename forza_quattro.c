@@ -72,8 +72,8 @@ static int board_real_drop_column(BOARD(b), int column, int direction) {
 
 	do {
 		rcol = rcol + direction;
-		if (rcol < 0) return 0;
-		if (rcol >= BOARD_WIDTH) return 0;
+		if (rcol < 0) return 0 - column;
+		if (rcol >= BOARD_WIDTH) return BOARD_WIDTH - column - 1;
 	} while (b[rcol][0] != STATE_EMPTY);
 
 	return rcol - column;
@@ -226,7 +226,6 @@ int main(int argc, char *argv[]) {
 		if (game[column][0] == STATE_EMPTY)
 			{ plr_fg(player, USV_CU, NULL); uileft(1); }
 		while ((c = uigetchar())) {
-
 			if (c == 'q') exit(0);
 
 			if (c == '\r' &&
@@ -243,6 +242,8 @@ int main(int argc, char *argv[]) {
 
 			int direction = 0;
 			switch (uigetchar()) {
+			case '5': if (uigetchar() == '~') direction = -BOARD_WIDTH; break;
+			case '6': if (uigetchar() == '~') direction = +BOARD_WIDTH; break;
 			case 'C': direction = +1; break;
 			case 'D': direction = -1; break;
 			default: break;
