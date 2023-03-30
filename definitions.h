@@ -29,7 +29,7 @@
 extern int s_board_width;
 extern int s_board_height;
 extern int s_count_target;
-extern int s_sp_coeff;
+extern unsigned short s_sp_coeff;
 #define BOARD_WIDTH (s_board_width)
 #define BOARD_HEIGHT (s_board_height)
 #define COUNT_TARGET (s_count_target)

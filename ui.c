@@ -3,12 +3,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
 #include <locale.h>
+#include <sys/ioctl.h>
 
 static struct termios initialattr;
+static struct winsize ttydimensions;
 
 int uirawtty(void) {
 	struct termios raw;
@@ -39,17 +42,34 @@ static void uiatexit(void) {
 }
 
 static void uisighandler(int sig) {
-	signal(sig, NULL);
+	signal(sig, SIG_IGN);
 	uirestoretty();
 	exit(0);
 }
 
-void uiinit(void) {
+static void uiwinchhandler(int sig) {
+	signal(sig, SIG_IGN);
+	ioctl(STDERR_FILENO, TIOCGWINSZ, &ttydimensions);
+	signal(sig, uiwinchhandler);
+}
+
+bool uiinit(void) {
+	if (!isatty(STDERR_FILENO))
+		return false;
+
 	setlocale(LC_ALL, "");
 	uirawtty();
 	atexit(uiatexit);
 	signal(SIGINT, uisighandler);
 	signal(SIGTERM, uisighandler);
+	signal(SIGWINCH, uiwinchhandler);
+	ioctl(STDERR_FILENO, TIOCGWINSZ, &ttydimensions);
+	return true;
+}
+
+void uidimensions(unsigned short int wh[2]) {
+	wh[0] = ttydimensions.ws_col;
+	wh[1] = ttydimensions.ws_row;
 }
 
 /// trashes SGR state

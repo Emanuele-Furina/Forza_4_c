@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdbool.h>
+#include <limits.h>
 
 #include "definitions.h"
 #include "ui.h"
@@ -23,7 +24,7 @@
 int s_board_width = DEFAULT_BOARD_WIDTH;
 int s_board_height = DEFAULT_BOARD_HEIGHT;
 int s_count_target = DEFAULT_COUNT_TARGET;
-int s_sp_coeff = DEFAULT_SP_COEFF;
+unsigned short s_sp_coeff = DEFAULT_SP_COEFF;
 
 bool normal_exit = false;
 
@@ -58,6 +59,10 @@ static void plr_fg(CellState player, const int *plrs, const int *none) {
 	if (plrs != NULL) uiprintf("%ls" SGR_RESET, plrs);
 }
 
+static unsigned short board_vis_width(int n) {
+	return BOARD_WIDTH * (n + 1) + 1;
+}
+
 static int board_available_in_column(BOARD(b), int column) {
 	if (column < 0 || column >= BOARD_WIDTH)
 		return -1;
@@ -69,6 +74,7 @@ static int board_available_in_column(BOARD(b), int column) {
 
 static int board_real_drop_column(BOARD(b), int column, int direction) {
 	int rcol = column;
+	if (direction == 0) return 0;
 
 	do {
 		rcol = rcol + direction;
@@ -119,11 +125,16 @@ static int board_player_has_won(
 }
 
 // should not move the cursor!
-void board_display(BOARD(b), CellState player) {
+unsigned short board_display(BOARD(b), CellState player) {
+	unsigned short real_sp = SP_COEFF;
+	unsigned short dims[2];
+	uidimensions(dims);
+	while (board_vis_width(real_sp) > dims[0] && real_sp > 0) real_sp--;
+
 	uiprintf("%ls", USV_DR);
 	for (int x = 0; x < BOARD_WIDTH; x++) {
 		uiprintf("%ls", b[x][0] != STATE_EMPTY ? USV_BK : L" ");
-		if (x < BOARD_WIDTH - 1) for (int i = 0; i < SP_COEFF; i++)
+		if (x < BOARD_WIDTH - 1) for (int i = 0; i < real_sp; i++)
 			uiprintf("%ls", (b[x + 0][0] != STATE_EMPTY &&
 			                 b[x + 1][0] != STATE_EMPTY) ? USV_BK : L" ");
 	}
@@ -134,7 +145,7 @@ void board_display(BOARD(b), CellState player) {
 		for (int x = 0; x < BOARD_WIDTH; x++) {
 			plr_fg(b[x][y], USV_PC, L" ");
 			if (x < BOARD_WIDTH - 1)
-				for (int i = 0; i < SP_COEFF; i++) uiprintf("%ls", L" ");
+				for (int i = 0; i < real_sp; i++) uiprintf("%ls", L" ");
 		}
 		uiprintf("%ls", USV_LV);
 		uiprintf("\n\r");
@@ -144,7 +155,7 @@ void board_display(BOARD(b), CellState player) {
 	for (int x = 0; x < BOARD_WIDTH; x++) {
 		uiprintf("%ls", USV_LH);
 		if (x < BOARD_WIDTH - 1)
-			for (int i = 0; i < SP_COEFF; i++) uiprintf("%ls", USV_LH);
+			for (int i = 0; i < real_sp; i++) uiprintf("%ls", USV_LH);
 	}
 	uiprintf("%ls", USV_UL "\n\r");
 
@@ -152,6 +163,8 @@ void board_display(BOARD(b), CellState player) {
 	uiprintf("Giocatore %d" SGR_RESET SGR_BLINK
 	         " sta pensando..." SGR_RESET ANSI_CLR "\r", player);
 	uiup(BOARD_HEIGHT + 2);
+
+	return real_sp;
 }
 
 unsigned long decode_opts(int argc, char *argv[]) {
@@ -179,9 +192,10 @@ unsigned long decode_opts(int argc, char *argv[]) {
 				die("Invalid counter target!");
 		} else if (!strcmp(argv[i], "-s")) {
 			if (++i >= argc) die("Expected argument after -s!");
-			s_sp_coeff = atoi(argv[i]);
-			if (s_sp_coeff < 0)
+			int t = atoi(argv[i]);
+			if (t < 0 || t > USHRT_MAX)
 				die("Invalid spacing coefficient!");
+			else s_sp_coeff = t;
 		} else {
 			usage(argv[0]);
 		}
@@ -199,11 +213,12 @@ CellState do_round(BOARD(b), int nplayers) {
 	CellState player = 1;
 	int column = 0, watchdog = 0;
 	while (watchdog < (BOARD_WIDTH * BOARD_HEIGHT)) {
-		board_display(b, player);
-		uiright(column * (SP_COEFF + 1) + 1);
+		unsigned short real_sp = board_display(b, player);
+		uiright(column * (real_sp + 1) + 1);
 
 		char c;
 		int row = 0;
+		bool redraw = false;
 		if (b[column][0] == STATE_EMPTY)
 			plr_fg(player, USV_CU "\033[D", NULL);
 		while ((c = uigetchar())) {
@@ -218,6 +233,11 @@ CellState do_round(BOARD(b), int nplayers) {
 				break;
 			}
 
+			if (c == 0x0c) { // ctrl-l
+				redraw = true;
+				break;
+			}
+
 			if (c != '\033') continue;
 			if (uigetchar() != '[') continue;
 
@@ -225,19 +245,20 @@ CellState do_round(BOARD(b), int nplayers) {
 			switch (uigetchar()) {
 			case 'C': direction = +1; break;
 			case 'D': direction = -1; break;
-			default: break;
-			} if (direction == 0) continue;
+			default: continue;
+			}
 			int delta = board_real_drop_column(b, column, direction);
 			uiprintf("%ls", b[column][0] == STATE_EMPTY ? L" " : USV_BK);
 			uileft(1);
 
-			uimovh(delta * (SP_COEFF + 1));
+			uimovh(delta * (real_sp + 1));
 			column += delta;
 			if (b[column][0] == STATE_EMPTY)
 				plr_fg(player, USV_CU "\033[D", NULL);
 		}
 
-		uileft(column * (SP_COEFF + 1) + 1);
+		uileft(column * (real_sp + 1) + 1);
+		if (redraw) continue;
 
 		// check if the current player has won
 		int positions[MAX_TARGET][2];
@@ -246,7 +267,7 @@ CellState do_round(BOARD(b), int nplayers) {
 		if (npositions > 0) {
 			board_display(b, player);
 			for (int i = 0; i < npositions; i++) {
-				int dx = positions[i][0] * (SP_COEFF + 1) + 1;
+				int dx = positions[i][0] * (real_sp + 1) + 1;
 				int dy = positions[i][1] + 1;
 				uimovrel(dx, dy);
 
@@ -281,7 +302,8 @@ int main(int argc, char *argv[]) {
 	CellState game[BOARD_WIDTH][BOARD_HEIGHT];
 	memset(game, 0, sizeof(CellState) * BOARD_WIDTH * BOARD_HEIGHT);
 
-	uiinit();
+	if (!uiinit())
+		die("stderr must be a tty!");
 	uihidecur();
 	atexit(atexit_cursor_cleanup);
 
